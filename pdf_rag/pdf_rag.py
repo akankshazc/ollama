@@ -5,11 +5,13 @@
 # 5. Perform similarity search on the vector database to find similar documents
 # 6. Retrieve the similar docs and present them to the user
 
-from langchain_community.vectorstores import Chroma
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_ollama import OllamaEmbeddings
-from langchain_community.document_loaders import UnstructuredPDFLoader
 from langchain_community.document_loaders import OnlinePDFLoader
+from langchain_community.document_loaders import UnstructuredPDFLoader
+from langchain_ollama import OllamaEmbeddings
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.vectorstores import Chroma
+import ollama
+
 
 doc_path = "../data/hba1c_interpretation.pdf"
 model = "gemma3:4b"
@@ -42,3 +44,22 @@ chunks = text_splitter.split_documents(data)
 
 # print(f"Split the document into {len(chunks)} chunks.") # working
 # print(f"First chunk:\n{chunks[0]}...")
+
+
+# === End of PDF chunking ===
+
+# Add chunks to vector database
+
+ollama.pull("nomic-embed-text")
+
+vector_df = Chroma.from_documents(
+    documents=chunks,
+    embedding=OllamaEmbeddings(model="nomic-embed-text"),
+    collection_name="pdf_rag"
+)
+
+print("Added chunks to vector database.")
+
+
+# === End of vector database creation ===
+
