@@ -18,7 +18,7 @@ model = "gemma3:4b"
 
 # Local PDF file upload
 if doc_path:
-    loader = UnstructuredPDFLoader(file_path=doc_path)
+    loader = UnstructuredPDFLoader(file_path=doc_path, languages=["en"])
     data = loader.load()
     print(f"Loaded document from local PDF file: {doc_path}")
 else:
@@ -52,7 +52,7 @@ chunks = text_splitter.split_documents(data)
 
 ollama.pull("nomic-embed-text")
 
-vector_df = Chroma.from_documents(
+vector_db = Chroma.from_documents(
     documents=chunks,
     embedding=OllamaEmbeddings(model="nomic-embed-text"),
     collection_name="pdf_rag"
@@ -63,3 +63,53 @@ print("Added chunks to vector database.")
 
 # === End of vector database creation ===
 
+# Retrieval
+
+from langchain.prompts import ChatPromptTemplate, PromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+
+from langchain_ollama import ChatOllama
+
+from langchain_core.runnables import RunnablePassthrough
+from langchain.retrievers.multi_query import MultiQueryRetriever
+
+# set up model to use
+llm = ChatOllama(model=model)
+
+# simple technique to generate multiple question from a single question and
+# then retrieve documents based on those questions:
+
+QUERY_PROMPT = PromptTemplate(
+    input_variables=["question"],
+    template="""You are an AI language model assistant. Your task is to generate five
+    different versions of the given user question to retrieve relevant documents from
+    a vector database. By generating multiple perspectives on the user question, your
+    goal is to help the user overcome some of the limitations of the distance-based
+    similarity search. Provide these alternative questions separated by newlines.
+    Original question: {question}""",
+)
+
+retriever = MultiQueryRetriever.from_llm(
+    vector_db.as_retriever(), llm=llm, prompt=QUERY_PROMPT)
+
+# RAG prompt template
+template = """Answer the question based ONLY on the following context: {context}
+Question: {question}"""
+
+prompt = ChatPromptTemplate.from_template(template)
+
+# RAG chain
+chain = (
+    {"context": retriever, "question": RunnablePassthrough()}
+    | prompt
+    | llm
+    | StrOutputParser()
+)
+
+# === End of retrieval setup ===
+
+# res = chain.invoke(input=("What is the document about?"))
+res = chain.invoke(input=("What are the main things to keep in mind while interpreting HBA1c?"))
+
+
+print(res)
