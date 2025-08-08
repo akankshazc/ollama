@@ -1,6 +1,6 @@
 from pathlib import Path
 import logging
-from langchain_community.document_loaders import UnstructuredFileLoader
+from langchain_community.document_loaders import UnstructuredPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 from langchain_ollama import OllamaEmbeddings
@@ -30,7 +30,7 @@ def ingest_pdf(doc_path):
         logging.error(f"Document not found: {doc_path}")
         return None
     else:
-        loader = UnstructuredFileLoader(file_path=doc_path)
+        loader = UnstructuredPDFLoader(file_path=doc_path, languages=["en"])
         data = loader.load()
         logging.info(f"Loaded {len(data)} documents from {doc_path}")
         return data
