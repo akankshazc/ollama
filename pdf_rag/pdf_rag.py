@@ -5,6 +5,9 @@
 # 5. Perform similarity search on the vector database to find similar documents
 # 6. Retrieve the similar docs and present them to the user
 
+from langchain_community.vectorstores import Chroma
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_ollama import OllamaEmbeddings
 from langchain_community.document_loaders import UnstructuredPDFLoader
 from langchain_community.document_loaders import OnlinePDFLoader
 
@@ -25,3 +28,17 @@ content = data[0].page_content
 # print(f"Preview of the first page:\n{content[:500]}...")  # is working
 
 # === End of PDF ingestion ===
+
+# Extract test from PDF and split into chunks
+
+
+# Split and chunk
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=1000,
+    chunk_overlap=200,
+    length_function=len,
+)
+chunks = text_splitter.split_documents(data)
+
+# print(f"Split the document into {len(chunks)} chunks.") # working
+# print(f"First chunk:\n{chunks[0]}...")
